@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 #
 # original comment:
 #
@@ -9,16 +11,7 @@
 #       Revised by Daniel J. Berger with suggestions from Florian Gross.
 #
 #       Documentation by James Edward Gray II and Gavin Sinclair
-
 module Forwardable
-
-  FILE_REGEXP = %r"#{Regexp.quote(__FILE__)}"
-
-  @debug = nil
-  class << self
-    attr_accessor :debug
-  end
-
   def instance_delegate(hash)
     hash.each do |methods, accessor|
       methods = [methods] unless methods.respond_to?(:each)
@@ -29,8 +22,8 @@ module Forwardable
   end
 
   def def_instance_delegators(accessor, *methods)
-    methods.delete("__send__")
-    methods.delete("__id__")
+    methods.delete('__send__')
+    methods.delete('__id__')
     methods.each do |method|
       def_instance_delegator(accessor, method)
     end
@@ -38,23 +31,15 @@ module Forwardable
 
   def def_instance_delegator(accessor, method, ali = method)
     # If it's not a class or module, it's an instance
-    if self.class == Class || self.class == Module
-      module_eval do
-        define_method(ali) do |*args, &block|
-          begin
-            instance_variable_get(accessor).__send__(method.to_sym, *args, &block)
-          rescue Exception
-            unless Forwardable::debug
-              $@.delete_if{|s| Forwardable::FILE_REGEXP =~ s}
-            end
-            ::Kernel::raise
-          end
-        end
-      end
-    else
-      raise "Forwardable not supported object-level delegation"
-    end
+    raise 'Forwardable not supported object-level delegation' unless instance_of?(Class) || instance_of?(Module)
 
+    module_eval do
+      define_method(ali) do |*args, &block|
+        instance_variable_get(accessor).__send__(method.to_sym, *args, &block)
+      rescue Exception
+        ::Kernel.raise
+      end
+    end
   end
 
   alias delegate instance_delegate
